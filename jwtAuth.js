@@ -21,11 +21,6 @@ exports.jwtAuth = (req, res, resend, next) => {
         if(refreshExpiresAt > new Date().getTime()){
             console.log("refreshToken still valid. give out new jwt");
             resend(req?.cookies?.token?.refreshToken);
-            /*
-            return res.status(403).json({
-                error: "JWT Expired, refreshToken valid"
-            })
-            */
         }else{
             res.clearCookie('token');
             return res.status(403).json({

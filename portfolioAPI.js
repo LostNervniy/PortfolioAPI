@@ -2,7 +2,6 @@ const express = require('express');
 const cors = require('cors');
 const config = require('config');
 const cookieParser = require('cookie-parser');
-const dayjs = require('dayjs');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
@@ -20,7 +19,7 @@ const port = config.server.port;
 
 
 function checkUser(user, password){
-    return (user === config.account.user && password === config.account.password);
+    return (user === process.env.USER && password === process.env.PASSWORD);
 }
 
 function generateToken(){

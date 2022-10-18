@@ -1,5 +1,6 @@
-function allowedmethods(req, res, next){
-    const allowedMethods = [
+
+function allowMethods(req, res, next){
+       const allowedMethods = [
         "OPTIONS",
         "HEAD",
         "CONNECT",
@@ -13,9 +14,9 @@ function allowedmethods(req, res, next){
 
     if(!allowedMethods.includes(req.method)){
         res.status(405).send(`${req.method} not allows.`);
-    }
+    } 
 
     next();
 }
 
-module.exports = allowedmethods;
+module.exports = allowMethods;

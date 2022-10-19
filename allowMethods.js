@@ -1,4 +1,9 @@
-
+/**
+ * 
+ * @param {REQUEST} req 
+ * @param {RESPONSE} res 
+ * @param {CALLBACK} next Callback function for destitinated request call
+ */
 function allowMethods(req, res, next){
        const allowedMethods = [
         "OPTIONS",
@@ -13,7 +18,7 @@ function allowMethods(req, res, next){
     ]
 
     if(!allowedMethods.includes(req.method)){
-        res.status(405).send(`${req.method} not allows.`);
+        return res.status(405).json({error: `${req.method} not allows.`});
     } 
 
     next();

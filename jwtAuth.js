@@ -1,5 +1,13 @@
 const jwt = require('jsonwebtoken');
 
+/**
+ * 
+ * @param {*} req 
+ * @param {*} res 
+ * @param {*} resend 
+ * @param {*} next 
+ * @returns 
+ */
 exports.jwtAuth = (req, res, resend, next) => {
     let refreshExpiresAt = 0;
     try{
@@ -7,6 +15,7 @@ exports.jwtAuth = (req, res, resend, next) => {
         if(refreshExpiresAt < new Date().getTime()){
             res.clearCookie('token');
             return res.status(403).json({
+                status: false,
                 error: "RefreshToken Expired"
             })
         }
@@ -24,6 +33,7 @@ exports.jwtAuth = (req, res, resend, next) => {
         }else{
             res.clearCookie('token');
             return res.status(403).json({
+                status: false,
                 error: "JWT expired or something else happend"
             })
         }

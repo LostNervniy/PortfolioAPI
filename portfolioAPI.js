@@ -19,7 +19,7 @@ const port = config.server.port;
 
 
 function checkUser(user, password){
-    return (user === process.env.USER && password === process.env.PASSWORD);
+    return (user === process.env.BENUTZER && password === process.env.PASSWORD);
 }
 
 function generateToken(){
@@ -32,6 +32,29 @@ function generateExpireDate(){
     return time  + Number(process.env.REFRESH_TOKEN_EXPIRES_IN_SECONDS)*1000;
 }
 
+function validateRefreshToken(req, res, refreshToken){
+        if(refreshToken !== req?.cookies?.token?.refreshToken){
+            return req.status(405).json({status: false});
+        }
+
+        const user = req?.cookies?.token?.user
+        const jwtoken = jwt.sign({user}, process.env.TOKEN_SECRET, {expiresIn: process.env.JWT_EXPIRES_IN});
+      
+        tokenJSON = {
+            "refreshToken": req?.cookies?.token?.refreshToken,
+            "refreshExpiresAt": req?.cookies?.token?.refreshExpiresAt,
+            user,
+            "jwt": jwtoken
+        }
+
+        res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
+        res.setHeader('Access-Control-Allow-Credentials', true);
+        
+        return res.cookie("token", tokenJSON, {
+            httpOnly: true,
+        }).status(200).json({status: true});
+}
+
 app.get('/login', function (req, res)  {
     allowMethods(req, res, () => {
         const user = req.query.user;
@@ -39,7 +62,8 @@ app.get('/login', function (req, res)  {
     
         if(!checkUser(user, password)){
             return res.status(403).json({
-                error: "wrong credentials"
+                status: false,
+                error: "wrong credentials",
             });
         }
     
@@ -59,10 +83,10 @@ app.get('/login', function (req, res)  {
     
             return res.cookie("token", tokenJSON, {
                 httpOnly: true,
-            }).status(200).send(true);
+            }).status(200).json({status: true});
             
         }else{
-            return res.status(200).send(true);
+            return res.status(200).json({status: true});
             
         }
     })
@@ -86,28 +110,9 @@ app.get('/status', function(req, res){
     allowMethods(req, res, () => {
         jwtAuth(req, res,
             (refreshToken) => {
-                if(refreshToken !== req?.cookies?.token?.refreshToken){
-                    return req.status(405).send(false);
-                }
-    
-                const user = req?.cookies?.token?.user
-                const jwtoken = jwt.sign({user}, process.env.TOKEN_SECRET, {expiresIn: process.env.JWT_EXPIRES_IN});
-              
-                tokenJSON = {
-                    "refreshToken": req?.cookies?.token?.refreshToken,
-                    "refreshExpiresAt": req?.cookies?.token?.refreshExpiresAt,
-                    user,
-                    "jwt": jwtoken
-                }
-        
-                res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
-                res.setHeader('Access-Control-Allow-Credentials', true);
-                
-                return res.cookie("token", tokenJSON, {
-                    httpOnly: true,
-                }).status(200).send(true);
+                validateRefreshToken(req, res, refreshToken);
             }, ()=>{
-                return res.status(200).send(true);
+                return res.status(200).json({status: true});
         })
     })
 })

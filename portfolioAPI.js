@@ -6,11 +6,12 @@ const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
+
 const allowMethods = require('./allowMethods');
 const { jwtAuth } = require('./jwtAuth');
 
 const app = express();
-app.use(cors());
+app.use(cors({credentials: true, origin: process.env.CORS_ALLOWED_ORIGIN}));
 app.use(cookieParser());
 
 const host = config.server.host;
@@ -19,7 +20,7 @@ const port = config.server.port;
 
 
 function checkUser(user, password){
-    return (user === process.env.BENUTZER && password === process.env.PASSWORD);
+    return (user === process.env.ACCOUNT && password === process.env.PASSWORD);
 }
 
 function generateToken(){
@@ -34,7 +35,7 @@ function generateExpireDate(){
 
 function refreshTokens(req, res, refreshToken, newUser=undefined){
         if(refreshToken !== req?.cookies?.token?.refreshToken){
-            return req.status(405).json({status: false});
+            return req.status(405).json({status: false, message: "RefreshToken invalid"});
         }
         
         if(newUser === undefined){
@@ -55,7 +56,7 @@ function refreshTokens(req, res, refreshToken, newUser=undefined){
         
         return res.cookie("token", tokenJSON, {
             httpOnly: true,
-        }).status(200).json({status: true});
+        }).status(200).json({status: true, message: "Refreshed JWT"});
 }
 
 app.get('/login', function (req, res)  {
@@ -66,7 +67,7 @@ app.get('/login', function (req, res)  {
         if(!checkUser(user, password)){
             return res.status(403).json({
                 status: false,
-                error: "wrong credentials",
+                message: "wrong credentials",
             });
         }
     
@@ -85,10 +86,10 @@ app.get('/login', function (req, res)  {
     
             return res.cookie("token", tokenJSON, {
                 httpOnly: true,
-            }).status(200).json({status: true});
+            }).status(200).json({status: true, message: "Successful login"});
             
         }else{
-            return res.status(200).json({status: true});
+            return res.status(200).json({status: true, message: "Already logged in"});
             
         }
     })
@@ -114,7 +115,7 @@ app.get('/status', function(req, res){
             (refreshToken) => {
                 refreshTokens(req, res, refreshToken);
             }, ()=>{
-                return res.status(200).json({status: true});
+                return res.status(200).json({status: true, message: "Authorized"});
         })
     })
 })

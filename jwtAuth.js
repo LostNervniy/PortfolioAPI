@@ -16,7 +16,7 @@ exports.jwtAuth = (req, res, resend, next) => {
             res.clearCookie('token');
             return res.status(403).json({
                 status: false,
-                error: "RefreshToken Expired"
+                message: "RefreshToken Expired"
             })
         }
 
@@ -34,7 +34,7 @@ exports.jwtAuth = (req, res, resend, next) => {
             res.clearCookie('token');
             return res.status(403).json({
                 status: false,
-                error: "JWT expired or something else happend"
+                message: "No valid token or something else"
             })
         }
     }   

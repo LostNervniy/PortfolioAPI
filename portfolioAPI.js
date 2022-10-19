@@ -32,18 +32,21 @@ function generateExpireDate(){
     return time  + Number(process.env.REFRESH_TOKEN_EXPIRES_IN_SECONDS)*1000;
 }
 
-function validateRefreshToken(req, res, refreshToken){
+function refreshTokens(req, res, refreshToken, newUser=undefined){
         if(refreshToken !== req?.cookies?.token?.refreshToken){
             return req.status(405).json({status: false});
         }
-
-        const user = req?.cookies?.token?.user
-        const jwtoken = jwt.sign({user}, process.env.TOKEN_SECRET, {expiresIn: process.env.JWT_EXPIRES_IN});
+        
+        if(newUser === undefined){
+            newUser = req?.cookies?.token?.user
+        }
+        
+        const jwtoken = jwt.sign({newUser}, process.env.TOKEN_SECRET, {expiresIn: process.env.JWT_EXPIRES_IN});
       
         tokenJSON = {
             "refreshToken": req?.cookies?.token?.refreshToken,
             "refreshExpiresAt": req?.cookies?.token?.refreshExpiresAt,
-            user,
+            newUser,
             "jwt": jwtoken
         }
 
@@ -70,7 +73,6 @@ app.get('/login', function (req, res)  {
         if(!req.cookies || !req.cookies.token){
             const refreshToken = generateToken();
             const jwtoken = jwt.sign({user}, process.env.TOKEN_SECRET, {expiresIn: process.env.JWT_EXPIRES_IN});
-     
             tokenJSON = {
                 "refreshToken": refreshToken,
                 "refreshExpiresAt": generateExpireDate(),
@@ -110,7 +112,7 @@ app.get('/status', function(req, res){
     allowMethods(req, res, () => {
         jwtAuth(req, res,
             (refreshToken) => {
-                validateRefreshToken(req, res, refreshToken);
+                refreshTokens(req, res, refreshToken);
             }, ()=>{
                 return res.status(200).json({status: true});
         })

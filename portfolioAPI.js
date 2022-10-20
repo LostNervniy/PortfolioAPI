@@ -1,4 +1,5 @@
 const express = require('express');
+const {query} = require('express-validator')
 const cors = require('cors');
 const config = require('config');
 const cookieParser = require('cookie-parser');
@@ -9,6 +10,8 @@ require('dotenv').config();
 
 const allowMethods = require('./allowMethods');
 const { jwtAuth } = require('./jwtAuth');
+const PortfolioDBConnection = require('./PortfolioDBConnection');
+
 
 const app = express();
 app.use(cors({credentials: true, origin: process.env.CORS_ALLOWED_ORIGIN}));
@@ -20,7 +23,16 @@ const port = config.server.port;
 
 
 function checkUser(user, password){
-    return (user === process.env.ACCOUNT && password === process.env.PASSWORD);
+    if(typeof user != 'string' 
+    && typeof password !== 'string'){
+        return false;
+    }
+
+    const dbConnection = new PortfolioDBConnection();
+    dbConnection.init()
+    return dbConnection.login(user, password).then(accepted => {
+        return accepted;
+    })
 }
 
 function generateToken(){
@@ -59,19 +71,31 @@ function refreshTokens(req, res, refreshToken, newUser=undefined){
         }).status(200).json({status: true, message: "Refreshed JWT"});
 }
 
-app.get('/login', function (req, res)  {
+app.get('/login',
+[query('user')
+.escape()
+.notEmpty()
+.withMessage('Only letters with numerical values allowed.')
+.isLength({min: 3, max:32}).withMessage('Username is too long or too short.')
+.matches(/^[A-Za-z0-9 .,'!&]+$/),
+query('password')
+
+.notEmpty()
+.withMessage('Password needs to be a string.')
+.matches(/^[A-Za-z0-9 .,'!&]+$/)
+.isLength({min:3, max:48}).withMessage('Password is too long or too short.')], function (req, res)  {
     allowMethods(req, res, () => {
         const user = req.query.user;
         const password = req.query.password;
-    
-        if(!checkUser(user, password)){
-            return res.status(403).json({
-                status: false,
-                message: "wrong credentials",
-            });
-        }
-    
-        if(!req.cookies || !req.cookies.token){
+        checkUser(user, password).then(accepted => {
+           if(!accepted){
+                return res.status(403).json({
+                    status: false,
+                    message: "wrong credentials",
+                });
+           }
+
+           if(!req.cookies || !req.cookies.token){
             const refreshToken = generateToken();
             const jwtoken = jwt.sign({user}, process.env.TOKEN_SECRET, {expiresIn: process.env.JWT_EXPIRES_IN});
             tokenJSON = {
@@ -92,9 +116,13 @@ app.get('/login', function (req, res)  {
             return res.status(200).json({status: true, message: "Already logged in"});
             
         }
+        }).catch(err => {
+            return res.status(403).json({
+                status: false,
+                message: "wrong credentials",
+            });
+        })
     })
-
-    
 })
 
 app.get('/logout', function(req, res){

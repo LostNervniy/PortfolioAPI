@@ -55,9 +55,6 @@ class PortfolioDBConnection{
         })
     }
 
-    test(){
-        console.log("huh")
-    }
 }
 
 module.exports = PortfolioDBConnection;

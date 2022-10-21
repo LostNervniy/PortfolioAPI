@@ -22,6 +22,19 @@ VALUES
 (<{username: }>,
 <{password: }>); ```
 
+- ```
+CREATE TABLE `Blogs` (
+  `idBlogs` int NOT NULL AUTO_INCREMENT,
+  `title` varchar(69) NOT NULL,
+  `subtitle` varchar(69) NOT NULL,
+  `text` longtext NOT NULL,
+  `additionaltext` longtext,
+  PRIMARY KEY (`idBlogs`),
+  UNIQUE KEY `idBlogs_UNIQUE` (`idBlogs`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+```
+
 
 ## How the .env file should look like
 ```

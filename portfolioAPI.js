@@ -1,5 +1,5 @@
 const express = require('express');
-const {query} = require('express-validator')
+const {query, body} = require('express-validator')
 const cors = require('cors');
 const config = require('config');
 const cookieParser = require('cookie-parser');
@@ -68,7 +68,7 @@ function refreshTokens(req, res, refreshToken, newUser=undefined){
         
         return res.cookie("token", tokenJSON, {
             httpOnly: true,
-        }).status(200).json({status: true, message: "Refreshed JWT"});
+        });
 }
 
 app.get('/login',
@@ -141,9 +141,40 @@ app.get('/status', function(req, res){
     allowMethods(req, res, () => {
         jwtAuth(req, res,
             (refreshToken) => {
-                refreshTokens(req, res, refreshToken);
+                const refreshed = refreshTokens(req, res, refreshToken);
+                refreshed.status(200).json({status: true, message: "Authorized", action: "Nwew JWT, there u go!"});
             }, ()=>{
                 return res.status(200).json({status: true, message: "Authorized"});
+        })
+    })
+})
+
+app.post('/createBlog',
+[
+    body('title')
+        .notEmpty().withMessage('title is empty')
+        .isLength({min: 3, max: 69}).withMessage('title is to large or to small'),
+    body('subtitle')
+        .notEmpty().withMessage('subtitle is empty')
+        .isLength({min: 3, max: 69}).withMessage('subtitle is to large or to small'),
+    body('text')
+        .notEmpty().withMessage('text is empty')
+        .isLength({min: 3}).withMessage('text is to small'),
+    body('additionaltext')
+        .notEmpty().withMessage('teadditionaltextxt is empty')
+        .isLength({min: 3}).withMessage('additionaltext is to small')
+], function(req, res){
+    allowMethods(req, res, () => {
+        jwtAuth(req, res,
+            (refreshToken) => {
+                const refreshed = refreshTokens(req, res, refreshToken);
+                console.log(req.body)
+                refreshed.status(200).json({status: true, message: "Authorized", action: "Added new blog entry"});
+                
+            }, ()=>{
+                console.log("sup2")
+                console.log(req.body)
+                return res.status(200).json({status: true, message: "Authorized", action: "Added new blog entry"});
         })
     })
 })

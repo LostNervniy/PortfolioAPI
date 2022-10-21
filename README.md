@@ -21,7 +21,7 @@ Commands to recreate the mysql database:
 VALUES
 (<{username: }>,
 <{password: }>); ```
--```  CREATE TABLE `Blogs` (
+- ```  CREATE TABLE `Blogs` (
   `idBlogs` int NOT NULL AUTO_INCREMENT,
   `title` varchar(69) NOT NULL,
   `subtitle` varchar(69) NOT NULL,

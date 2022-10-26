@@ -1,5 +1,6 @@
 const mysql = require('mysql2');
 const bcrypt = require('bcrypt');
+const { resolveTxt } = require('dns');
 class PortfolioDBConnection{
     connection = null;
     init(){
@@ -52,6 +53,40 @@ class PortfolioDBConnection{
                 }
             )
 
+        })
+    }
+
+    addGenre(genre){
+        let that = this;
+        return new Promise(function(resolve, reject){
+            if(typeof genre != 'string'){
+                return reject("Genre is not a string.")
+            }
+            that.connection.query(
+                "INSERT INTO PortfolioDB.Genres (genre) VALUES (?)",
+                [genre],
+                function(error, results){
+                    if(error){
+                        return reject("Genre already exists")
+                    }
+                    resolve(results)
+                }
+            )
+        })
+    }
+
+    getAllGenres(){
+        let that = this;
+        return new Promise(function(resolve, reject){
+            that.connection.query(
+                "SELECT id, genre FROM PortfolioDB.Genres",
+                function(error, results){
+                    if(error){
+                        return reject("Error")
+                    }
+                    resolve(results)
+                }
+            )
         })
     }
 

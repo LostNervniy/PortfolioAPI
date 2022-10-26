@@ -1,5 +1,6 @@
 const express = require('express');
-const {query, body} = require('express-validator')
+const bodyParser = require('body-parser')
+const {query, body, check, validationResult} = require('express-validator')
 const cors = require('cors');
 const config = require('config');
 const cookieParser = require('cookie-parser');
@@ -16,6 +17,8 @@ const PortfolioDBConnection = require('./PortfolioDBConnection');
 const app = express();
 app.use(cors({credentials: true, origin: process.env.CORS_ALLOWED_ORIGIN}));
 app.use(cookieParser());
+app.use(bodyParser.urlencoded({extended: false}))
+app.use(bodyParser.json())
 
 const host = config.server.host;
 const port = config.server.port;
@@ -32,6 +35,25 @@ function checkUser(user, password){
     dbConnection.init()
     return dbConnection.login(user, password).then(accepted => {
         return accepted;
+    })
+}
+
+function addGenre(genre){
+    if(typeof genre != 'string'){
+        return false;
+    }
+    const dbConnection = new PortfolioDBConnection();
+    dbConnection.init();
+    return dbConnection.addGenre(genre).then(accepted => {
+        return accepted
+    })
+}
+
+function getAllGenres(){
+    const dbConnection = new PortfolioDBConnection();
+    dbConnection.init();
+    return dbConnection.getAllGenres().then(data => {
+        return data;
     })
 }
 
@@ -142,7 +164,7 @@ app.get('/status', function(req, res){
         jwtAuth(req, res,
             (refreshToken) => {
                 const refreshed = refreshTokens(req, res, refreshToken);
-                refreshed.status(200).json({status: true, message: "Authorized", action: "Nwew JWT, there u go!"});
+                refreshed.status(200).json({status: true, message: "Authorized", action: "New JWT, there u go!"});
             }, ()=>{
                 return res.status(200).json({status: true, message: "Authorized"});
         })
@@ -168,13 +190,63 @@ app.post('/createBlog',
         jwtAuth(req, res,
             (refreshToken) => {
                 const refreshed = refreshTokens(req, res, refreshToken);
-                console.log(req.body)
                 refreshed.status(200).json({status: true, message: "Authorized", action: "Added new blog entry"});
                 
             }, ()=>{
-                console.log("sup2")
-                console.log(req.body)
                 return res.status(200).json({status: true, message: "Authorized", action: "Added new blog entry"});
+        })
+    })
+})
+
+app.post('/createGenre',[
+    check('genre').notEmpty().withMessage('Genre is empty')
+    .isLength({min: 3, max: 69}).withMessage('Genre is too long or to small')
+    .escape()
+], function(req, res){
+    let err = validationResult(req)
+    if(!err.isEmpty()){
+        return res.status(200).json({status: false, message: err.mapped().genre.msg});
+    }
+
+    allowMethods(req, res, () => {
+        jwtAuth(req, res, (refreshToken) => {
+            const refreshed = refreshTokens(req, res, refreshToken);
+            addGenre(req.body.genre).then(() => {
+                return refreshed.status(200).json({status: true, message: `Added ${req.body.genre} successfully`, action: "Added new genre"});
+            }).catch((err) => {
+                return res.status(200).json({status: false, message: err})
+            })
+
+            
+        }, () => {
+            addGenre(req.body.genre).then(() => {
+                return res.status(200).json({status: true, message: `Added ${req.body.genre} successfully`, action: "Added new genre"});
+                    
+                
+            }).catch((err) => {
+                return res.status(200).json({status: false, message: err})
+            })
+           
+        })
+    })
+})
+
+app.get('/genres', function(req, res){
+    allowMethods(req, res, () => {
+        jwtAuth(req, res,  (refreshToken) => {
+            const refreshed = refreshTokens(req, res, refreshToken);
+            getAllGenres().then(data => {
+                return refreshed.status(200).json({status: true, data: data})
+            }).catch(() => {
+                return refreshed.status(200).json({status: false, data: "failed to get data"})
+            })
+            
+        }, () => {
+            getAllGenres().then(data => {
+                return res.status(200).json({status: true, data: data})
+            }).catch(() => {
+                return res.status(200).json({status: false, data: "failed to get data"})
+            })
         })
     })
 })

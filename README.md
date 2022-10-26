@@ -15,21 +15,32 @@ Commands to recreate the mysql database:
   UNIQUE KEY `username_UNIQUE` (`username`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci; ```
 - Generate a hashed password ```https://bcrypt-generator.com``` and replace add it to the INSERT INTO query
+
 - ``` INSERT INTO `PortfolioDB`.`Users`
 (`username`,
 `password`)
 VALUES
 (<{username: }>,
 <{password: }>); ```
+
 - ```  CREATE TABLE `Blogs` (
   `idBlogs` int NOT NULL AUTO_INCREMENT,
   `title` varchar(69) NOT NULL,
   `subtitle` varchar(69) NOT NULL,
   `text` longtext NOT NULL,
   `additionaltext` longtext,
+  `genre` int DEFAULT NULL,
   PRIMARY KEY (`idBlogs`),
   UNIQUE KEY `idBlogs_UNIQUE` (`idBlogs`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci; ```
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;```
+ 
+ - ``` CREATE TABLE `Genres` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `genre` varchar(69) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `Genres_UNIQUE` (`id`),
+  UNIQUE KEY `Genre_UNIQUE` (`genre`)
+) ENGINE=InnoDB AUTO_INCREMENT=320 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;```
 
 
 

@@ -90,8 +90,46 @@ class PortfolioDBConnection{
         })
     }
 
+    getAllBlogs(){
+        let that = this;
+        return new Promise(function(resolve, reject){
+            that.connection.query(
+                "SELECT b.idBlogs, b.title, b.subtitle, b.text, b.additionaltext, g.genre, b.date FROM PortfolioDB.Blogs AS b LEFT JOIN PortfolioDB.Genres AS g on b.genre = g.id",
+                function(error, results){
+                    if(error){
+                        return reject("Error")
+                    }
+                    resolve(results)
+                }
+            )
+        })
+    }
+
+
+    addBlog(title, subtitle, text, additionaltext, genre){
+        let that = this;
+        return new Promise(function(resolve, reject){
+            if(typeof title != 'string' ||
+                typeof subtitle != 'string' ||
+                typeof text != 'string' ||
+                typeof additionaltext != 'string' ||
+                typeof genre != 'number'){
+                    return reject("Format is wrong.")
+                }
+                that.connection.query(
+                    "INSERT INTO PortfolioDB.Blogs (title, subtitle, text, additionaltext, genre) VALUES (?, ?, ?, ?, ?)",
+                    [title, subtitle, text, additionaltext, genre],
+                    function(error, results){
+                        if(error){
+                            return reject(`Blog with title ${title} already exists`)
+                        }
+                        resolve(results)
+                    }
+                )
+                
+        })
+    }
+
 }
 
 module.exports = PortfolioDBConnection;
-
-

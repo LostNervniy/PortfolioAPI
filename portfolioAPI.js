@@ -38,6 +38,15 @@ function checkUser(user, password){
     })
 }
 
+function addBlog(title, subtitle, text, additionaltext, genre){
+    const dbConnection = new PortfolioDBConnection();
+    dbConnection.init();
+    return dbConnection.addBlog(title, subtitle, text, additionaltext, genre).then(res => {
+        return res
+    })
+}
+
+
 function addGenre(genre){
     if(typeof genre != 'string'){
         return false;
@@ -48,6 +57,15 @@ function addGenre(genre){
         return accepted
     })
 }
+
+function getAllBlogs(){
+    const dbConnection = new PortfolioDBConnection();
+    dbConnection.init();
+    return dbConnection.getAllBlogs().then(data => {
+        return data;
+    })
+}
+
 
 function getAllGenres(){
     const dbConnection = new PortfolioDBConnection();
@@ -69,7 +87,7 @@ function generateExpireDate(){
 
 function refreshTokens(req, res, refreshToken, newUser=undefined){
         if(refreshToken !== req?.cookies?.token?.refreshToken){
-            return req.status(405).json({status: false, message: "RefreshToken invalid"});
+            return req.status(400).json({status: false, message: "RefreshToken invalid"});
         }
         
         if(newUser === undefined){
@@ -94,24 +112,28 @@ function refreshTokens(req, res, refreshToken, newUser=undefined){
 }
 
 app.get('/login',
-[query('user')
+[check('user')
 .escape()
 .notEmpty()
 .withMessage('Only letters with numerical values allowed.')
 .isLength({min: 3, max:32}).withMessage('Username is too long or too short.')
 .matches(/^[A-Za-z0-9 .,'!&]+$/),
-query('password')
+check('password')
 
 .notEmpty()
 .withMessage('Password needs to be a string.')
 .matches(/^[A-Za-z0-9 .,'!&]+$/)
 .isLength({min:3, max:48}).withMessage('Password is too long or too short.')], function (req, res)  {
+    let err = validationResult(req)
+    if(!err.isEmpty()){
+        return res.status(400).json({status: false, message: err.mapped()});
+    }
     allowMethods(req, res, () => {
         const user = req.query.user;
         const password = req.query.password;
         checkUser(user, password).then(accepted => {
            if(!accepted){
-                return res.status(403).json({
+                return res.status(400).json({
                     status: false,
                     message: "wrong credentials",
                 });
@@ -139,7 +161,7 @@ query('password')
             
         }
         }).catch(err => {
-            return res.status(403).json({
+            return res.status(400).json({
                 status: false,
                 message: "wrong credentials",
             });
@@ -155,7 +177,7 @@ app.get('/logout', function(req, res){
     if(req.cookies || req.cookies.token){
         return res.clearCookie("token").status(200).send(true)
     }else{
-        return req.status(405).send(false);
+        return req.status(400).send(false);
     }
 })
 
@@ -173,27 +195,42 @@ app.get('/status', function(req, res){
 
 app.post('/createBlog',
 [
-    body('title')
+    check('title')
         .notEmpty().withMessage('title is empty')
         .isLength({min: 3, max: 69}).withMessage('title is to large or to small'),
-    body('subtitle')
-        .notEmpty().withMessage('subtitle is empty')
-        .isLength({min: 3, max: 69}).withMessage('subtitle is to large or to small'),
-    body('text')
+    check('subtitle')
+        .isString().withMessage('subtitle requires a string'),
+    check('text')
         .notEmpty().withMessage('text is empty')
+        .isString().withMessage('additional requires a string')
         .isLength({min: 3}).withMessage('text is to small'),
-    body('additionaltext')
-        .notEmpty().withMessage('teadditionaltextxt is empty')
-        .isLength({min: 3}).withMessage('additionaltext is to small')
+    check('additionaltext').isString().withMessage('additional requires a string'),
+    check('genre')
+        .notEmpty().withMessage('genre is empty')
+        .matches(/^[0-9]*$/).withMessage('genre must be given an id')
 ], function(req, res){
+    let err = validationResult(req)
+    console.log(err.mapped())
+    if(!err.isEmpty()){
+        return res.status(400).json({status: false, message: err.mapped()});
+    }
     allowMethods(req, res, () => {
         jwtAuth(req, res,
             (refreshToken) => {
                 const refreshed = refreshTokens(req, res, refreshToken);
-                refreshed.status(200).json({status: true, message: "Authorized", action: "Added new blog entry"});
+                addBlog(req.body.title, req.body.subtitle, req.body.text, req.body.additionaltext, req.body.genre).then(() => {
+                    return refreshed.status(200).json({status: true, message: `Added blog with title [${req.body.title}]`, action: "Added new blog entry"});
+                }).catch(() => {
+                    return res.status(400).json({status: false, message: err})
+                })
+                
                 
             }, ()=>{
-                return res.status(200).json({status: true, message: "Authorized", action: "Added new blog entry"});
+                addBlog(req.body.title, req.body.subtitle, req.body.text, req.body.additionaltext, req.body.genre).then(() => {
+                    return res.status(200).json({status: true, message: `Added blog with title ${req.body.title}`, action: "Added new blog entry"});
+                }).catch(() => {
+                    return res.status(400).json({status: false, message: err})
+                })
         })
     })
 })
@@ -205,7 +242,7 @@ app.post('/createGenre',[
 ], function(req, res){
     let err = validationResult(req)
     if(!err.isEmpty()){
-        return res.status(200).json({status: false, message: err.mapped().genre.msg});
+        return res.status(400).json({status: false, message: err.mapped().genre.msg});
     }
 
     allowMethods(req, res, () => {
@@ -214,7 +251,7 @@ app.post('/createGenre',[
             addGenre(req.body.genre).then(() => {
                 return refreshed.status(200).json({status: true, message: `Added ${req.body.genre} successfully`, action: "Added new genre"});
             }).catch((err) => {
-                return res.status(200).json({status: false, message: err})
+                return res.status(400).json({status: false, message: err})
             })
 
             
@@ -224,9 +261,19 @@ app.post('/createGenre',[
                     
                 
             }).catch((err) => {
-                return res.status(200).json({status: false, message: err})
+                return res.status(400).json({status: false, message: err})
             })
            
+        })
+    })
+})
+
+app.get('/blogs', function(req, res){
+    allowMethods(req, res, () => {
+        getAllBlogs().then(data => {
+            return res.status(200).json({data: data})
+        }).catch(() => {
+            return res.status(400).json({status: false, data: "failed to get data"})
         })
     })
 })
@@ -238,14 +285,14 @@ app.get('/genres', function(req, res){
             getAllGenres().then(data => {
                 return refreshed.status(200).json({status: true, data: data})
             }).catch(() => {
-                return refreshed.status(200).json({status: false, data: "failed to get data"})
+                return refreshed.status(400).json({status: false, data: "failed to get data"})
             })
             
         }, () => {
             getAllGenres().then(data => {
                 return res.status(200).json({status: true, data: data})
             }).catch(() => {
-                return res.status(200).json({status: false, data: "failed to get data"})
+                return res.status(400).json({status: false, data: "failed to get data"})
             })
         })
     })
